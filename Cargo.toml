@@ -1,0 +1,27 @@
+[package]
+name = "aegis-seal"
+version = "0.1.0"
+edition = "2021"
+description = "Ed25519 signing, hash-chained audit ledger, and secret/entropy scanning in safe Rust"
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "aegis_seal"
+path = "src/lib.rs"
+
+[[bin]]
+name = "aegis-seal"
+path = "src/main.rs"
+
+[dependencies]
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand = "0.8"
+sha2 = "0.10"
+subtle = "2"
+zeroize = { version = "1", features = ["derive"] }
+hex = "0.4"
+thiserror = "2"
+
+[profile.release]
+lto = true
+strip = true
