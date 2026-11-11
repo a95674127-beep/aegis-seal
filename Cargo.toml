@@ -1,6 +1,6 @@
 [package]
 name = "aegis-seal"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Ed25519 signing, hash-chained audit ledger, and secret/entropy scanning in safe Rust"
 license = "MIT OR Apache-2.0"

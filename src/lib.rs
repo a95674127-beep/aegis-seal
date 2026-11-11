@@ -8,6 +8,8 @@
 )]
 
 //! # Aegis-Seal Core Library
+/// Independent verification of MACK vault chain-tip checkpoints.
+pub mod checkpoint;
 /// Ed25519 signing keys, SHA-256 hashing, and signature verification.
 pub mod crypto;
 /// Hash-chained, tamper-evident audit ledger.

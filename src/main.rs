@@ -1,3 +1,4 @@
+use aegis_seal::checkpoint::verify_checkpoint;
 use aegis_seal::crypto::{hash_file_streaming, verify_signature, SealedSigningKey};
 use aegis_seal::scanner::enforce_zero_trust_policy;
 use std::path::{Path, PathBuf};
@@ -12,6 +13,9 @@ fn print_usage() {
     eprintln!("  aegis-seal keygen [--key <path>]");
     eprintln!("  aegis-seal sign [--key <path>] <message>");
     eprintln!("  aegis-seal verify <public_key_hex> <signature_hex> <message>");
+    eprintln!(
+        "  aegis-seal verify-checkpoint --pubkey <hex> --seq <n> --head-hash <hex> --signature <hex>"
+    );
     eprintln!("  aegis-seal hash <file>");
     eprintln!("  aegis-seal scan <file>");
     eprintln!("Key custody: keygen writes the 32-byte seed to the key file");
@@ -90,6 +94,52 @@ fn cmd_verify(public_key_hex: &str, signature_hex: &str, message: &str) -> ExitC
     }
 }
 
+/// Parses the `verify-checkpoint` flags (`--pubkey`, `--seq`,
+/// `--head-hash`, `--signature`, any order, each exactly once) into
+/// the four checkpoint values.
+fn parse_checkpoint_flags(args: &[String]) -> Result<(String, u64, String, String), String> {
+    let mut pubkey: Option<String> = None;
+    let mut seq: Option<u64> = None;
+    let mut head_hash: Option<String> = None;
+    let mut signature: Option<String> = None;
+    let mut i = 0;
+    while i < args.len() {
+        let flag = args.get(i).map(String::as_str).unwrap_or("");
+        let value = args
+            .get(i + 1)
+            .ok_or_else(|| format!("{flag} requires a value"))?;
+        match flag {
+            "--pubkey" => pubkey = Some(value.clone()),
+            "--seq" => {
+                seq =
+                    Some(value.parse::<u64>().map_err(|_| {
+                        format!("--seq must be a non-negative integer, got {value}")
+                    })?);
+            }
+            "--head-hash" => head_hash = Some(value.clone()),
+            "--signature" => signature = Some(value.clone()),
+            other => return Err(format!("unknown verify-checkpoint argument: {other}")),
+        }
+        i += 2;
+    }
+    match (pubkey, seq, head_hash, signature) {
+        (Some(p), Some(s), Some(h), Some(sig)) => Ok((p, s, h, sig)),
+        _ => Err(
+            "verify-checkpoint requires --pubkey, --seq, --head-hash, and --signature".to_string(),
+        ),
+    }
+}
+
+fn cmd_verify_checkpoint(pubkey: &str, seq: u64, head_hash: &str, signature: &str) -> ExitCode {
+    match verify_checkpoint(pubkey, seq, head_hash, signature) {
+        Ok(()) => {
+            println!("checkpoint signature valid");
+            ExitCode::SUCCESS
+        }
+        Err(e) => fail(&e.to_string()),
+    }
+}
+
 fn cmd_hash(file: &str) -> ExitCode {
     match hash_file_streaming(Path::new(file)) {
         Ok(digest) => {
@@ -130,6 +180,12 @@ fn main() -> ExitCode {
                 None => fail("sign requires <message>"),
             },
             Ok(_) => fail("sign requires exactly one <message>"),
+            Err(e) => fail(&e),
+        },
+        Some("verify-checkpoint") => match parse_checkpoint_flags(&rest) {
+            Ok((pubkey, seq, head_hash, signature)) => {
+                cmd_verify_checkpoint(&pubkey, seq, &head_hash, &signature)
+            }
             Err(e) => fail(&e),
         },
         Some("verify") if args.len() == 4 => match (args.get(1), args.get(2), args.get(3)) {
