@@ -17,17 +17,34 @@ in library code via clippy lints.
 
 ## Status
 
-v0.1 scaffold — initial working implementation, not yet independently
-reviewed and not production-audited. Local verification at first push:
-`cargo build --release`, `cargo test` (**9 passed, 0 failed**),
-`cargo fmt --check`, and `cargo clippy --all-targets -- -D warnings` all
-clean on the author workstation.
+v0.2.0 — key custody hardened (see below). Working implementation, not yet
+independently reviewed and not production-audited. Local verification at
+the v0.2 push: `cargo build --release`, `cargo test` (**13 passed,
+0 failed**), `cargo fmt --check`, and
+`cargo clippy --all-targets -- -D warnings` all clean on the author
+workstation, plus a CLI smoke test of the keygen → sign → verify flow.
+
+## Key custody
+
+The signing key is a 32-byte seed in a **key file** — by default
+`./aegis-key.bin`, or wherever `--key <path>` points.
+
+- `keygen` creates the file **owner-only (0600 on Unix)** and refuses to
+  overwrite an existing key.
+- The private key is **never printed and has no text export**. (v0.1
+  printed the private key as hex at keygen; v0.2 removed that API
+  entirely.) The only key material ever displayed is the **public key
+  hex** and its short fingerprint.
+- **The key file is the credential.** Back it up offline like one.
+  Whoever holds the file can sign as this notary; losing the file loses
+  the notary identity — there is no recovery and no export to fall back
+  on by design.
 
 ## CLI
 
 ```
-aegis-seal keygen
-aegis-seal sign <private_key_hex> <message>
+aegis-seal keygen [--key <path>]
+aegis-seal sign [--key <path>] <message>
 aegis-seal verify <public_key_hex> <signature_hex> <message>
 aegis-seal hash <file>
 aegis-seal scan <file>
