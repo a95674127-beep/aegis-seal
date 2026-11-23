@@ -3,6 +3,21 @@
 All notable changes to Aegis-Seal are recorded here. Versions follow the
 `Cargo.toml` version of the crate.
 
+## [0.4.0] — Unreleased
+
+- **External checkpoints for the audit ledger.**
+  `AuditLedger::checkpoint()` exports the chain's length and tip hash
+  as a `LedgerCheckpoint` (serialized with `to_json`, parsed with
+  `from_json`), and `AuditLedger::verify_checkpoint()` compares a
+  chain against a saved checkpoint, reporting `Match`, `Truncated`,
+  `Rewritten`, or `ChainInvalid`. This makes the two attacks the raw
+  chain cannot detect — tail truncation and whole-chain rewrite —
+  detectable, provided the checkpoint itself is stored somewhere an
+  attacker cannot rewrite it along with the chain. Entries appended
+  after a checkpoint are growth, not tampering. Twin Link vault
+  checkpoint verification (0.3.0) is unchanged.
+- Test count: 26 passing (scanner 5, crypto 4, ledger 12, checkpoint 5).
+
 ## [0.3.0]
 
 - **Independent MACK vault checkpoint verification ("Twin Link").**
@@ -40,7 +55,11 @@ All notable changes to Aegis-Seal are recorded here. Versions follow the
   the chain is detected by `verify()`, but truncating entries from the
   tail leaves a shorter chain that still verifies, and a whole-chain
   rewrite recomputes cleanly. Anchor the chain tip somewhere outside the
-  chain — signed checkpoints (see 0.3.0) exist for exactly that.
+  chain — signed checkpoints (see 0.3.0) exist for exactly that. As of
+  0.4.0 the crate also provides unsigned ledger checkpoints
+  (`AuditLedger::checkpoint()` / `verify_checkpoint()`) for the same
+  purpose; they carry no signature, so their protection is exactly the
+  integrity of wherever they are stored.
 - **The scanner is heuristics, not a guarantee.** It rejects known
   credential patterns and high-entropy windows; it does not prove a file
   contains no secrets.

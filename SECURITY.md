@@ -53,7 +53,8 @@ verification.
 ledger's hash chain is unkeyed — tamper-evident, not tamper-proof. Tail
 truncation and whole-chain rewrites are not detectable from the chain
 alone; anchor the chain tip externally (signed checkpoints are the
-intended mechanism). The scanner is pattern-and-entropy heuristics, not a
+intended mechanism; 0.4.0 also adds unsigned ledger checkpoints —
+see `CHANGELOG.md`). The scanner is pattern-and-entropy heuristics, not a
 proof that a file is secret-free. See `CHANGELOG.md` for the full
 limitation list.
 
