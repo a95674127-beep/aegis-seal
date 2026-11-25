@@ -1,0 +1,27 @@
+[package]
+name = "aegis-seal-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+aegis-seal = { path = ".." }
+hex = "0.4"
+
+[[bin]]
+name = "ledger_json"
+path = "fuzz_targets/ledger_json.rs"
+
+[[bin]]
+name = "verify_checkpoint"
+path = "fuzz_targets/verify_checkpoint.rs"
+
+[[bin]]
+name = "policy_scan"
+path = "fuzz_targets/policy_scan.rs"
+
+[workspace]
