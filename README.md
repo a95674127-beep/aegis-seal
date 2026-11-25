@@ -24,7 +24,8 @@ v0.4.0 — adds external checkpoints for the crate's own ledger chain
 verification of MACK vault checkpoints; v0.2.0 hardened key custody.
 Working implementation, not yet independently reviewed and not
 production-audited. Local verification at the v0.4.0 build:
-`cargo test` (**26 passed, 0 failed**), `cargo fmt --check`, and
+`cargo test` (**26 unit tests + 1 doctest passed, 0 failed**),
+`cargo fmt --check`, `cargo build --examples`, and
 `cargo clippy --all-targets -- -D warnings` all clean, plus (at
 v0.3.0) a live cross-check: a checkpoint block printed by the
 vault's `twin_demo` example verified with `verify-checkpoint`, and
@@ -45,6 +46,55 @@ The signing key is a 32-byte seed in a **key file** — by default
   Whoever holds the file can sign as this notary; losing the file loses
   the notary identity — there is no recovery and no export to fall back
   on by design.
+
+## Library usage
+
+Add the crate as a dependency and use the four modules directly.
+Every fallible operation returns `AegisError`.
+
+```rust
+use aegis_seal::crypto::{verify_signature, SealedSigningKey};
+use aegis_seal::ledger::AuditLedger;
+use aegis_seal::scanner::enforce_zero_trust_policy;
+
+// Sign and verify (in-memory key; see "Key custody" for files).
+let (key, _verifying_key) = SealedSigningKey::generate();
+let signature = key.sign(b"hello");
+assert!(verify_signature(&key.public_key_hex(), &signature, b"hello").is_ok());
+
+// Hash-chained ledger.
+let mut ledger = AuditLedger::new();
+ledger.append(b"first event");
+assert_eq!(ledger.verify(), Ok(()));
+
+// Zero-trust policy scan (returns overall entropy on success).
+assert!(enforce_zero_trust_policy(b"ordinary config text", None).is_ok());
+```
+
+### Public API overview
+
+| Area | Items |
+| --- | --- |
+| Errors | `AegisError` (`CryptoFailure`, `InputBoundExceeded`, `PolicyViolation`, `LedgerTamper`, `StorageError`) |
+| Signing (`crypto`) | `SealedSigningKey` (`generate`, `from_seed`, `save_to_file`, `load_from_file`, `verifying_key`, `public_key_hex`, `public_key_fingerprint`, `sign`), `verify_signature` |
+| Hashing (`crypto`) | `hash_bytes`, `hash_file_streaming`, `constant_time_digest_eq`, `MAX_INSPECT_BYTES` |
+| Ledger (`ledger`) | `AuditLedger` (`new`, `append`, `entries`, `verify`, `checkpoint`, `verify_checkpoint`), `LedgerEntry`, `LedgerCheckpoint` (`to_json`, `from_json`), `CheckpointVerdict` (`Match`, `Truncated`, `Rewritten`, `ChainInvalid`) |
+| Vault checkpoints (`checkpoint`) | `verify_checkpoint`, `checkpoint_message`, `CHECKPOINT_DOMAIN` |
+| Scanner (`scanner`) | `enforce_zero_trust_policy`, `shannon_entropy`, `DEFAULT_MAX_ENTROPY` |
+
+Full rustdoc: `cargo doc --open`.
+
+## Examples
+
+Runnable examples live in `examples/` — each covers one area of the
+public API and is built by `cargo build --examples`:
+
+```
+cargo run --example sign_and_verify    # SealedSigningKey, verify_signature, hash_bytes
+cargo run --example audit_ledger       # AuditLedger, LedgerCheckpoint JSON, CheckpointVerdict
+cargo run --example verify_checkpoint  # vault checkpoint vector, checkpoint_message
+cargo run --example policy_scan        # enforce_zero_trust_policy, shannon_entropy
+```
 
 ## CLI
 

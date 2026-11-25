@@ -8,6 +8,45 @@
 )]
 
 //! # Aegis-Seal Core Library
+//!
+//! Ed25519 signing, a hash-chained audit ledger, and secret / entropy
+//! scanning in safe Rust.
+//!
+//! - [`crypto`] — [`crypto::SealedSigningKey`] (memory-scrubbed
+//!   Ed25519 keys with file custody), [`crypto::verify_signature`],
+//!   SHA-256 hashing ([`crypto::hash_bytes`],
+//!   [`crypto::hash_file_streaming`]), and constant-time digest
+//!   comparison.
+//! - [`ledger`] — [`ledger::AuditLedger`], an append-only SHA-256
+//!   hash chain whose [`ledger::AuditLedger::verify`] detects edits,
+//!   plus external [`ledger::LedgerCheckpoint`] values that also
+//!   detect tail truncation and whole-chain rewrites.
+//! - [`checkpoint`] — independent verification of MACK vault
+//!   chain-tip checkpoints from their four public values alone.
+//! - [`scanner`] — zero-trust policy scanning
+//!   ([`scanner::enforce_zero_trust_policy`]) that rejects known
+//!   credential patterns and high-entropy windows.
+//!
+//! All fallible operations return [`AegisError`].
+//!
+//! # Example
+//!
+//! ```
+//! use aegis_seal::ledger::{AuditLedger, CheckpointVerdict};
+//!
+//! let mut ledger = AuditLedger::new();
+//! ledger.append(b"first event");
+//! ledger.append(b"second event");
+//! assert_eq!(ledger.verify(), Ok(()));
+//!
+//! let checkpoint = ledger.checkpoint();
+//! ledger.append(b"third event");
+//! // Growth after a checkpoint is not tampering.
+//! assert_eq!(
+//!     ledger.verify_checkpoint(&checkpoint),
+//!     CheckpointVerdict::Match
+//! );
+//! ```
 /// Independent verification of MACK vault chain-tip checkpoints.
 pub mod checkpoint;
 /// Ed25519 signing keys, SHA-256 hashing, and signature verification.
